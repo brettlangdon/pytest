@@ -508,15 +508,26 @@ class FDCaptureBase(CaptureBase[AnyStr]):
         self._assert_state("done", ("initialized", "started", "suspended", "done"))
         if self._state == "done":
             return
-        os.dup2(self.targetfd_save, self.targetfd)
-        os.close(self.targetfd_save)
-        if self.targetfd_invalid is not None:
-            if self.targetfd_invalid != self.targetfd:
-                os.close(self.targetfd)
-            os.close(self.targetfd_invalid)
-        self.syscapture.done()
-        self.tmpfile.close()
-        self._state = "done"
+
+        try:
+            os.dup2(self.targetfd_save, self.targetfd)
+            os.close(self.targetfd_save)
+            if self.targetfd_invalid is not None:
+                if self.targetfd_invalid != self.targetfd:
+                    os.close(self.targetfd)
+                os.close(self.targetfd_invalid)
+            self.syscapture.done()
+            self.tmpfile.close()
+            self._state = "done"
+        except Exception as e:
+            print(f"Error during FDCaptureBase.done: {e!r}")
+            print(f"self: {self!r}")
+            print(f"self.tmpfile: {self.tmpfile!r}")
+            print(f"self.syscapture: {self.syscapture!r}")
+            print(f"self.targetfd: {self.targetfd!r}")
+            print(f"self.targetfd_save: {self.targetfd_save!r}")
+            print(f"self.targetfd_invalid: {self.targetfd_invalid!r}")
+            raise
 
     def suspend(self) -> None:
         self._assert_state("suspend", ("started", "suspended"))
